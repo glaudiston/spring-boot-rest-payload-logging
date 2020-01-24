@@ -10,14 +10,15 @@ import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;
 import java.util.Collections;
-import java.util.UUID;
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
-import org.apache.log4j.MDC;
 import org.springframework.stereotype.Component;
+import org.apache.log4j.Logger;
+import java.util.UUID;
 
 @Component
 public class LogApiInterceptor extends HandlerInterceptorAdapter {
+	private static final Logger LOGGER = Logger.getLogger(LogApiInterceptor.class);
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
             if ( response instanceof ResettableStreamHttpServletResponse ) {
@@ -56,31 +57,31 @@ public class LogApiInterceptor extends HandlerInterceptorAdapter {
                     writer.write(requestBody);
             }
     }
-    public void writeRequestPayloadAudit(ResettableStreamHttpServletRequest wrappedRequest) throws Exception {
-	    MDC.put("uid", UUID.randomUUID());
-	    String requestHeaders = getRawHeaders(wrappedRequest);
-	    String requestBody = org.apache.commons.io.IOUtils.toString(wrappedRequest.getReader());
-	    System.out.println("writeRequestPayloadAudit - request id  " + MDC.get("uid"));
-	    System.out.println("Request Method: "+wrappedRequest.getMethod());
-	    System.out.println("Request Headers:");
-	    System.out.println(requestHeaders);
-	    System.out.println("Request body:");
-	    System.out.println(requestBody);
+    public void writeRequestPayloadAudit(ResettableStreamHttpServletRequest wrappedRequest) {
+	    try {
+		    String requestHeaders = getRawHeaders(wrappedRequest);
+		    String requestBody = org.apache.commons.io.IOUtils.toString(wrappedRequest.getReader());
+		    LOGGER.info("Request Method: "+wrappedRequest.getMethod());
+		    LOGGER.info("Request Headers:");
+		    LOGGER.info(requestHeaders);
+		    LOGGER.info("Request body:");
+		    LOGGER.info(requestBody);
+	    } catch (Exception e) {
+		    LOGGER.error(e);
+	    }
     }
     public void writeResponsePayloadAudit(ResettableStreamHttpServletResponse wrappedResponse){
-	    String payloadFile = "/tmp/" + MDC.get("uid") + "-request.txt";
             String rawHeaders = getRawHeaders(wrappedResponse);
-	    System.out.println("writeResponsePayloadAudit - request id " + MDC.get("uid"));
-	    System.out.println("Response Status: " + wrappedResponse.getStatus());
-	    System.out.println("Response Headers:");
-	    System.out.println(rawHeaders);
-	    System.out.println("Response body:");
+	    LOGGER.info("Response Status: " + wrappedResponse.getStatus());
+	    LOGGER.info("Response Headers:");
+	    LOGGER.info(rawHeaders);
+	    LOGGER.info("Response body:");
 	    byte[] data = new byte[wrappedResponse.rawData.size()];
 	    for (int i = 0; i < data.length; i++) {
-		        data[i] = (byte) wrappedResponse.rawData.get(i);
+		data[i] = (byte) wrappedResponse.rawData.get(i);
 	    }
 	    String responseBody = new String(data);
-	    System.out.println(responseBody);
+	    LOGGER.info(responseBody);
 	    // String requestBody = org.apache.commons.io.IOUtils.toString(obj.getReader());
 	    // writePayloadAudit(payloadFile, rawHeaders, requestBody);
     }
